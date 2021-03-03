@@ -1,6 +1,6 @@
 ---
 title: "Simulation-based inference - confidence intervals"
-author: ""
+author: "Devanshi Pandya"
 date: "March 3, 2021"
 output: html_document
 editor_options: 
@@ -105,6 +105,7 @@ as the "best guess", or estimate, for the population parameter.
 
 Suppose we were interested in the population mean. What would be natural
 point estimate to use?
+The natural point estimate for the population mean would be p-hat.
 
 
 | Quantity           | Parameter  | Statistic   |
@@ -117,6 +118,9 @@ point estimate to use?
 
 
 What is the downside to using point estimates?
+point estimates are generated only from one population sample. It is not very
+likely that this point statistic actually represents the actual value for the
+population.
 
 ## Confidence intervals
 
@@ -146,6 +150,8 @@ Suppose you randomly sample 50 students and 5 of them are left handed. If you
 were to take another random sample of 50 students, how many would you expect 
 to be left handed? Would you be surprised if only 3 of them were left handed? 
 Would you be surprised if 40 of them were left handed?
+I would be surprised if 40 were left handed, but I would not be
+surprised if 3 were left handed. 
 
 ## Quantifying the variability of a sample statistic
 
@@ -189,7 +195,7 @@ Consider 20 1-bedroom apartments that were randomly selected on
 Craigslist Manhattan from apartments listed as "by owner".
 
 ```{r data_manhattan}
-manhattan <- read_csv("~/manhattan.csv")
+manhattan <- read_csv("manhattan.csv")
 ```
 
 Consider 3-10 day survival of mice randomized to various
@@ -250,10 +256,10 @@ Create a 95% bootstrap confidence interval for the population *mean* price of
 
 First, identify the following:
 
-- Population: 
-- Parameter of interest:
-- Sample:
-- Sample size:
+- Population: 1 bedroom apartments in manhattan
+- Parameter of interest: price
+- Sample: 1 bedroom apartments
+- Sample size: 20
 
 To create our confidence interval, we'll follow the four-step bootstrap
 scheme outlined in the slides using functions from `infer`.
@@ -329,6 +335,8 @@ get_ci(boot_means, level = 0.95)
 ```
 
 What does this mean?
+These means that in repeated samples, we can say with 95% confidence that the
+interval contains the true mean for the population.
 
 **Interpretation**:
 
@@ -339,19 +347,29 @@ population *median* price of 1-bedroom apartments in Manhattan. Do this in a
 single code chunk with a single pipeline. Provide an interpretation of your result.
 
 ```{r practice_1}
+boot_median <- manhattan %>% 
+  specify(response = rent) %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
+  calculate(stat = "median") %>%
+  summarise(
+    lb = quantile(stat, 0.025),
+    ub = quantile(stat, 0.975)
+  )
+boot_median
 
 ```
-
+This means that we can say with 95% confidence that the median of prices of 1 bedroom apartments in manhattan
+are between $2162 and $2875.
 ### A confidence interval for the population proportion - $p$
 
 Consider the mice radiation dataset. Suppose we want to compute a 95% confidence interval for the proportion of mice that died while not on the treatment,regardless of the dose.
 
 First, identify the following:
 
-- Population: 
-- Parameter of interest:
-- Sample:
-- Sample size:
+- Population: mice
+- Parameter of interest: proportion that died while not on treatment
+- Sample: mice
+- Sample size: 522
 
 ```{r boot_mice}
 boot_prop <- mice %>% 
@@ -368,6 +386,7 @@ ci_mice_died
 ```
 
 What does this mean?
+We can say with 95% confidence that between 69% and 79.7% of mice died while not on treatment
 
 **Interpretation**:
 
@@ -381,21 +400,31 @@ visualise(boot_prop) +
 Consider the mice radiation results. Suppose we want to compute a 90% confidence interval for the proportion of mice that lived while on the treatment, regardless of the dose.
 
 ```{r practice_2_bootstrap}
-
+boot_mice <- mice %>% 
+  filter(treat == 0) %>% 
+  mutate(died = if_else(died == 0, "yes", "no")) %>% 
+  specify(response = died, success = "yes") %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
+  calculate(stat = "prop") 
+boot_mice
 ```
 
 ```{r practice_2_ci}
-
+ci_mice_live <- get_ci(boot_mice, level = .95)
+ci_mice_live
 ```
 
 Visualizing our Resuts:
 
 ```{r practice_2_visualize}
-
+visualise(boot_mice) +
+  shade_ci(ci_mice_live)
 ```
 
 
 Give an interpretation of your result.
+We can say with 95% confidence that the proprtion of mice that lived on treatment 
+are between .203 and .310.
 
 
 # References
